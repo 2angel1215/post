@@ -1,4 +1,9 @@
 <?php
+session_start();
+if (!isset($_SESSION['id'])) {
+    header("Location: login.php");
+    exit;
+}
 include 'config.php';
 
 $post = mysqli_query($conn, "SELECT posts.*, users.username FROM posts JOIN users ON posts.author_id = users.id ORDER BY posts.created_at DESC");
@@ -10,6 +15,7 @@ $post = mysqli_query($conn, "SELECT posts.*, users.username FROM posts JOIN user
 </head>
 <body>
     <h1>게시글 목록</h1>
+    <a href="logout.php">로그아웃</a>
     <a href="write.php">글 작성</a>
 
     <table border='1'>
