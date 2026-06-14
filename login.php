@@ -3,8 +3,10 @@ include 'config.php';
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = $_POST['username'];
     $password = $_POST['password'];
-    $result = mysqli_query($conn, "SELECT * FROM users WHERE username = '$username'");
-    $user = mysqli_fetch_assoc($result);
+    $stmt = mysqli_prepare($conn, "SELECT * FROM users WHERE username = ?");
+    mysqli_stmt_bind_param($stmt, "s", $username);
+    mysqli_stmt_execute($stmt);
+    $user = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
     if ($user && password_verify($password, $user['password'])) {
         session_start();
         $_SESSION['id'] = $user['id'];

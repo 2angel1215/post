@@ -7,43 +7,60 @@ if (!isset($_SESSION['id'])) {
 include 'config.php';
 
 $action = $_POST['action'];
-$id = $_POST['id'] ?? null;
+$id = isset($_POST['id']) ? (int)$_POST['id'] : null;
+$me = $_SESSION['id'];
+
+// 댓글의 작성자 id 조회 (수정/삭제 권한 확인용)
+function comment_author($conn, $id) {
+    $stmt = mysqli_prepare($conn, "SELECT author_id FROM comments WHERE id = ?");
+    mysqli_stmt_bind_param($stmt, "i", $id);
+    mysqli_stmt_execute($stmt);
+    $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    return $row ? $row['author_id'] : null;
+}
 
 // 댓글 작성
 if ($action == 'write') {
     $content = $_POST['content'];
-    $post_id = $_POST['post_id'];
-    $username = $_POST['username'];
+    $post_id = (int)$_POST['post_id'];
+    $author_id = $me; // 작성자는 로그인 사용자
 
-    // users 테이블에서 username 조회
-    $user_result = mysqli_query($conn, "SELECT id FROM users WHERE username = '$username'");
-
-    if (mysqli_num_rows($user_result) == 0) {
-        // 없으면 자동 생성
-        mysqli_query($conn, "INSERT INTO users (username, password) VALUES ('$username', '')");
-        $author_id = mysqli_insert_id($conn);
-    } else {
-        $user = mysqli_fetch_assoc($user_result);
-        $author_id = $user['id'];
-    }
-
-    mysqli_query($conn, "INSERT INTO comments (post_id, author_id, content) VALUES ('$post_id', '$author_id', '$content')");
+    $stmt = mysqli_prepare($conn, "INSERT INTO comments (post_id, author_id, content) VALUES (?, ?, ?)");
+    mysqli_stmt_bind_param($stmt, "iis", $post_id, $author_id, $content);
+    mysqli_stmt_execute($stmt);
     header("Location: view.php?id=$post_id");
+    exit;
 }
 
 // 댓글 수정
 if ($action == 'edit') {
     $content = $_POST['content'];
-    $post_id = $_POST['post_id'];
-    mysqli_query($conn, "UPDATE comments SET content = '$content' WHERE id = $id");
+    $post_id = (int)$_POST['post_id'];
+
+    if (comment_author($conn, $id) != $me) {
+        echo "작성자가 아닙니다.";
+        exit;
+    }
+    $stmt = mysqli_prepare($conn, "UPDATE comments SET content = ? WHERE id = ?");
+    mysqli_stmt_bind_param($stmt, "si", $content, $id);
+    mysqli_stmt_execute($stmt);
     header("Location: view.php?id=$post_id");
+    exit;
 }
 
 // 댓글 삭제
 if ($action == 'delete') {
-    $post_id = $_POST['post_id'];
-    mysqli_query($conn, "DELETE FROM comments WHERE id = $id");
+    $post_id = (int)$_POST['post_id'];
+
+    if (comment_author($conn, $id) != $me) {
+        echo "작성자가 아닙니다.";
+        exit;
+    }
+    $stmt = mysqli_prepare($conn, "DELETE FROM comments WHERE id = ?");
+    mysqli_stmt_bind_param($stmt, "i", $id);
+    mysqli_stmt_execute($stmt);
     header("Location: view.php?id=$post_id");
+    exit;
 }
 
 exit;

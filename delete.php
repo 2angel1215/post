@@ -6,18 +6,26 @@ if (!isset($_SESSION['id'])) {
 }
 include 'config.php';
 
-$id = $_POST['id'];
-$check_username = $_POST['check_username'];
+$id = (int)$_POST['id'];
+$me = $_SESSION['id'];
 
 // 게시글 작성자 확인
-$result = mysqli_query($conn, "SELECT author_id FROM posts WHERE id = $id");
-$post = mysqli_fetch_assoc($result);
+$stmt = mysqli_prepare($conn, "SELECT author_id FROM posts WHERE id = ?");
+mysqli_stmt_bind_param($stmt, "i", $id);
+mysqli_stmt_execute($stmt);
+$post = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 
-$user_result = mysqli_query($conn, "SELECT id FROM users WHERE username = '$check_username'");
-$user = mysqli_fetch_assoc($user_result);
-
-if ($user && $user['id'] == $post['author_id']) {
-    mysqli_query($conn, "DELETE FROM posts WHERE id = $id");
+if ($post && $me == $post['author_id']) {
+    // 첨부파일(디스크 + DB) 먼저 정리
+    delete_post_attachments($conn, $id);
+    // 댓글 정리
+    $stmt = mysqli_prepare($conn, "DELETE FROM comments WHERE post_id = ?");
+    mysqli_stmt_bind_param($stmt, "i", $id);
+    mysqli_stmt_execute($stmt);
+    // 게시글 삭제
+    $stmt = mysqli_prepare($conn, "DELETE FROM posts WHERE id = ?");
+    mysqli_stmt_bind_param($stmt, "i", $id);
+    mysqli_stmt_execute($stmt);
     header("Location: index.php");
 } else {
     echo "작성자가 아닙니다.";

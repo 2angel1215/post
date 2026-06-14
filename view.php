@@ -6,50 +6,64 @@ if (!isset($_SESSION['id'])) {
 }
 include 'config.php';
 
-$id = $_GET['id'];
+$id = (int)$_GET['id'];
+$me = $_SESSION['id'];
 
 // 게시글 조회 (작성자 이름 JOIN)
-$result = mysqli_query($conn, "SELECT posts.*, users.username FROM posts JOIN users ON posts.author_id = users.id WHERE posts.id = $id");
-$post = mysqli_fetch_assoc($result);
+$stmt = mysqli_prepare($conn, "SELECT posts.*, users.username FROM posts JOIN users ON posts.author_id = users.id WHERE posts.id = ?");
+mysqli_stmt_bind_param($stmt, "i", $id);
+mysqli_stmt_execute($stmt);
+$post = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+
+if (!$post) {
+    echo "존재하지 않는 게시글입니다.";
+    exit;
+}
+
+// 첨부파일 목록
+$stmt = mysqli_prepare($conn, "SELECT * FROM attachments WHERE post_id = ? ORDER BY id ASC");
+mysqli_stmt_bind_param($stmt, "i", $id);
+mysqli_stmt_execute($stmt);
+$attachments = mysqli_stmt_get_result($stmt);
 
 // 댓글 목록 조회
-$comments = mysqli_query($conn, "SELECT comments.*, users.username FROM comments JOIN users ON comments.author_id = users.id WHERE comments.post_id = $id ORDER BY created_at ASC");
+$stmt = mysqli_prepare($conn, "SELECT comments.*, users.username FROM comments JOIN users ON comments.author_id = users.id WHERE comments.post_id = ? ORDER BY comments.created_at ASC");
+mysqli_stmt_bind_param($stmt, "i", $id);
+mysqli_stmt_execute($stmt);
+$comments = mysqli_stmt_get_result($stmt);
 ?>
 <!DOCTYPE html>
 <html>
 <head>
-    <title><?= $post['title'] ?></title>
+    <meta charset="utf-8">
+    <title><?= htmlspecialchars($post['title']) ?></title>
 </head>
 <body>
-    <h1><?= $post['title'] ?></h1>
-    <p>작성자: <?= $post['username'] ?> | 날짜: <?= $post['created_at'] ?></p>
-    <p><?= $post['content'] ?></p>
+    <h1><?= htmlspecialchars($post['title']) ?></h1>
+    <p>작성자: <?= htmlspecialchars($post['username']) ?> | 날짜: <?= $post['created_at'] ?></p>
+    <p><?= nl2br(htmlspecialchars($post['content'])) ?></p>
 
-    <!-- 수정 버튼 -->
-    <form action="edit.php" method="GET" id="edit-form">
-        <input type="hidden" name="id" value="<?= $post['id'] ?>">
-        <input type="hidden" name="check_username" id="edit-username">
-        <button type="button" onclick="
-            var name = prompt('작성자 이름을 입력하세요');
-            if (name) {
-                document.getElementById('edit-username').value = name;
-                document.getElementById('edit-form').submit();
-            }
-        ">수정</button>
-    </form>
+    <!-- 첨부파일 -->
+    <?php if (mysqli_num_rows($attachments) > 0) { ?>
+    <h3>첨부파일</h3>
+    <ul>
+        <?php while ($file = mysqli_fetch_assoc($attachments)) { ?>
+        <li>
+            <a href="download.php?id=<?= $file['id'] ?>"><?= htmlspecialchars($file['original_name']) ?></a>
+            (<?= number_format((int)$file['size_bytes']) ?> bytes)
+        </li>
+        <?php } ?>
+    </ul>
+    <?php } ?>
 
-    <!-- 삭제 버튼 -->
-    <form action="delete.php" method="POST" id="delete-form">
+    <!-- 수정/삭제 버튼: 작성자 본인에게만 노출 -->
+    <?php if ($me == $post['author_id']) { ?>
+    <a href="edit.php?id=<?= $post['id'] ?>">수정</a>
+    <form action="delete.php" method="POST" style="display:inline" onsubmit="return confirm('삭제하시겠습니까?');">
         <input type="hidden" name="id" value="<?= $post['id'] ?>">
-        <input type="hidden" name="check_username" id="delete-username">
-        <button type="button" onclick="
-            var name = prompt('작성자 이름을 입력하세요');
-            if (name) {
-                document.getElementById('delete-username').value = name;
-                document.getElementById('delete-form').submit();
-            }
-        ">삭제</button>
+        <button type="submit">삭제</button>
     </form>
+    <?php } ?>
 
     <a href="index.php">목록</a>
 
@@ -57,37 +71,26 @@ $comments = mysqli_query($conn, "SELECT comments.*, users.username FROM comments
 
     <h2>댓글</h2>
     <?php while ($row = mysqli_fetch_assoc($comments)) { ?>
-    <p><?= $row['username'] ?> : <?= $row['content'] ?></p>
+    <p>
+        <b><?= htmlspecialchars($row['username']) ?></b> : <?= htmlspecialchars($row['content']) ?>
 
-    <!-- 댓글 삭제 -->
-    <form action="comment.php" method="POST">
-        <input type="hidden" name="action" value="delete">
-        <input type="hidden" name="id" value="<?= $row['id'] ?>">
-        <input type="hidden" name="post_id" value="<?= $id ?>">
-        <button type="submit">삭제</button>
-    </form>
-
-   <!-- 댓글 수정 -->
-    <form action="comment_edit.php" method="GET" id="comment-edit-form-<?= $row['id'] ?>">
-        <input type="hidden" name="id" value="<?= $row['id'] ?>">
-        <input type="hidden" name="post_id" value="<?= $id ?>">
-        <input type="hidden" name="check_username" id="comment-edit-username-<?= $row['id'] ?>">
-        <button type="button" onclick="
-            var name = prompt('작성자 이름을 입력하세요');
-            if (name) {
-                document.getElementById('comment-edit-username-<?= $row['id'] ?>').value = name;
-                document.getElementById('comment-edit-form-<?= $row['id'] ?>').submit();
-            }
-        ">수정</button>
-    </form>
-
+        <!-- 댓글 수정/삭제: 작성자 본인에게만 노출 -->
+        <?php if ($me == $row['author_id']) { ?>
+        <a href="comment_edit.php?id=<?= $row['id'] ?>&post_id=<?= $id ?>">수정</a>
+        <form action="comment.php" method="POST" style="display:inline" onsubmit="return confirm('삭제하시겠습니까?');">
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="id" value="<?= $row['id'] ?>">
+            <input type="hidden" name="post_id" value="<?= $id ?>">
+            <button type="submit">삭제</button>
+        </form>
+        <?php } ?>
+    </p>
     <?php } ?>
 
-    <!-- 댓글 작성 폼 -->
+    <!-- 댓글 작성 폼 (작성자는 로그인 사용자) -->
     <form action="comment.php" method="POST">
         <input type="hidden" name="action" value="write">
         <input type="hidden" name="post_id" value="<?= $id ?>">
-        <input type="text" name="username" placeholder="작성자 이름">
         <textarea name="content" placeholder="댓글 내용"></textarea>
         <button type="submit">댓글 등록</button>
     </form>
