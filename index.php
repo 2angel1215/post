@@ -1,11 +1,10 @@
 
 <?php
-session_start();
+include 'config.php';
 if (!isset($_SESSION['id'])) {
     header("Location: login.php");
     exit;
 }
-include 'config.php';
 
 // 게시판 선택: 1 = 전체 글, 2 = 오늘 글
 $board = isset($_GET['board']) ? (int)$_GET['board'] : 1;

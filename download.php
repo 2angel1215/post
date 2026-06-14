@@ -1,10 +1,9 @@
 <?php
-session_start();
+include 'config.php';
 if (!isset($_SESSION['id'])) {
     header("Location: login.php");
     exit;
 }
-include 'config.php';
 
 $id = (int)($_GET['id'] ?? 0);
 

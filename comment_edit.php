@@ -1,10 +1,9 @@
 <?php
-session_start();
+include 'config.php';
 if (!isset($_SESSION['id'])) {
     header("Location: login.php");
     exit;
 }
-include 'config.php';
 
 $id = (int)($_GET['id'] ?? $_POST['id']);
 $post_id = (int)($_GET['post_id'] ?? $_POST['post_id']);
@@ -26,6 +25,7 @@ if ($me != $comment['author_id']) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    csrf_check();
     $content = $_POST['content'];
     $stmt = mysqli_prepare($conn, "UPDATE comments SET content = ? WHERE id = ?");
     mysqli_stmt_bind_param($stmt, "si", $content, $id);
@@ -43,6 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body>
     <h1>댓글 수정</h1>
     <form action="comment_edit.php" method="POST">
+        <?= csrf_field() ?>
         <input type="hidden" name="id" value="<?= $id ?>">
         <input type="hidden" name="post_id" value="<?= $post_id ?>">
         <textarea name="content"><?= htmlspecialchars($comment['content']) ?></textarea><br>

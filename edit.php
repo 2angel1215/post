@@ -1,10 +1,9 @@
 <?php
-session_start();
+include 'config.php';
 if (!isset($_SESSION['id'])) {
     header("Location: login.php");
     exit;
 }
-include 'config.php';
 
 $id = (int)($_GET['id'] ?? $_POST['id']);
 $me = $_SESSION['id'];
@@ -27,6 +26,7 @@ if ($me != $post['author_id']) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    csrf_check();
     set_time_limit(60); // 업로드 처리 실행 시간 제한 (초)
 
     // 파일 검증 (형식/크기). 문제가 있으면 메시지 출력 후 중단
@@ -82,6 +82,7 @@ $attachments = mysqli_stmt_get_result($stmt);
 <body>
     <h1>게시글 수정</h1>
     <form action="edit.php" method="POST" enctype="multipart/form-data">
+        <?= csrf_field() ?>
         <input type="hidden" name="id" value="<?= $id ?>">
         <input type="text" name="title" value="<?= htmlspecialchars($post['title']) ?>"><br>
         <textarea name="content"><?= htmlspecialchars($post['content']) ?></textarea><br>

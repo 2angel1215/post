@@ -1,6 +1,7 @@
 <?php
 include 'config.php';
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    csrf_check();
     $username = $_POST['username'];
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
     $created_at = date("Y-m-d H:i:s");
@@ -26,6 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <h1>회원가입</h1>
     <?php if (isset($_GET['error'])) echo "이미 사용 중인 아이디입니다."; ?>
     <form action="register.php" method="POST">
+        <?= csrf_field() ?>
         <input type="text" name="username" placeholder="아이디"><br>
         <input type="password" name="password" placeholder="비밀번호"><br>
         <button type="submit">가입</button>

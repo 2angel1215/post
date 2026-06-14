@@ -1,5 +1,39 @@
 <?php
 
+// === 세션 보안 설정 (session_start 이전에 지정해야 함) ===
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path'     => '/',
+    'httponly' => true,   // JS에서 쿠키 접근 차단 (XSS 시 세션 탈취 방지)
+    'samesite' => 'Lax',  // 크로스 사이트 요청에 쿠키 미전송 (CSRF 완화)
+    'secure'   => false,  // HTTPS 적용 시 true 로 변경
+]);
+ini_set('session.use_strict_mode', '1'); // 세션 고정(fixation) 공격 방지
+session_start();
+
+// CSRF 토큰 생성 (세션당 1개)
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+// 폼에 넣을 CSRF 히든 필드
+function csrf_field() {
+    return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($_SESSION['csrf_token']) . '">';
+}
+
+// POST 요청의 CSRF 토큰 검증 (실패 시 차단)
+function csrf_check() {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        return;
+    }
+    if (empty($_POST['csrf_token']) ||
+        !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+        http_response_code(403);
+        echo "잘못된 요청입니다. (CSRF 검증 실패)";
+        exit;
+    }
+}
+
 $conn = mysqli_connect("localhost","root","","K_KNOCK");
 
 if(!$conn) {

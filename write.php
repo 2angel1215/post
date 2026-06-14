@@ -1,12 +1,12 @@
 <?php
-session_start();
+include 'config.php';
 if (!isset($_SESSION['id'])) {
     header("Location: login.php");
     exit;
 }
-include 'config.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    csrf_check();
     set_time_limit(60); // 업로드 처리 실행 시간 제한 (초)
 
     // 파일 검증 (형식/크기). 문제가 있으면 메시지 출력 후 중단
@@ -51,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body>
     <h1>게시글 작성</h1>
     <form action="write.php" method="POST" enctype="multipart/form-data">
+        <?= csrf_field() ?>
         <input type="text" name="title" placeholder="제목"><br>
         <textarea name="content" placeholder="내용"></textarea><br>
         <input type="file" name="file"><br>

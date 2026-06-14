@@ -1,10 +1,10 @@
 <?php
-session_start();
+include 'config.php';
 if (!isset($_SESSION['id'])) {
     header("Location: login.php");
     exit;
 }
-include 'config.php';
+csrf_check();
 
 $id = (int)$_POST['id'];
 $me = $_SESSION['id'];

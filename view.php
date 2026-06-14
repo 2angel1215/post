@@ -1,10 +1,9 @@
 <?php
-session_start();
+include 'config.php';
 if (!isset($_SESSION['id'])) {
     header("Location: login.php");
     exit;
 }
-include 'config.php';
 
 $id = (int)$_GET['id'];
 $me = $_SESSION['id'];
@@ -60,6 +59,7 @@ $comments = mysqli_stmt_get_result($stmt);
     <?php if ($me == $post['author_id']) { ?>
     <a href="edit.php?id=<?= $post['id'] ?>">수정</a>
     <form action="delete.php" method="POST" style="display:inline" onsubmit="return confirm('삭제하시겠습니까?');">
+        <?= csrf_field() ?>
         <input type="hidden" name="id" value="<?= $post['id'] ?>">
         <button type="submit">삭제</button>
     </form>
@@ -78,6 +78,7 @@ $comments = mysqli_stmt_get_result($stmt);
         <?php if ($me == $row['author_id']) { ?>
         <a href="comment_edit.php?id=<?= $row['id'] ?>&post_id=<?= $id ?>">수정</a>
         <form action="comment.php" method="POST" style="display:inline" onsubmit="return confirm('삭제하시겠습니까?');">
+            <?= csrf_field() ?>
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="id" value="<?= $row['id'] ?>">
             <input type="hidden" name="post_id" value="<?= $id ?>">
@@ -89,6 +90,7 @@ $comments = mysqli_stmt_get_result($stmt);
 
     <!-- 댓글 작성 폼 (작성자는 로그인 사용자) -->
     <form action="comment.php" method="POST">
+        <?= csrf_field() ?>
         <input type="hidden" name="action" value="write">
         <input type="hidden" name="post_id" value="<?= $id ?>">
         <textarea name="content" placeholder="댓글 내용"></textarea>

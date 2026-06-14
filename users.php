@@ -1,10 +1,9 @@
 <?php
-session_start();
+include 'config.php';
 if (!isset($_SESSION['id'])) {
     header("Location: login.php");
     exit;
 }
-include 'config.php';
 
 $keyword = trim($_GET['keyword'] ?? '');
 $users = null;
