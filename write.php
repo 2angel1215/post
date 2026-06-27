@@ -28,8 +28,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $content = $_POST['content'];
     $author_id = $_SESSION['id']; // 작성자는 로그인한 사용자
 
-    $stmt = mysqli_prepare($conn, "INSERT INTO posts (title, content, author_id) VALUES (?, ?, ?)");
-    mysqli_stmt_bind_param($stmt, "ssi", $title, $content, $author_id);
+    // 게시판: 1 = 자유게시판, 2 = 방명록
+    $board = (int)($_POST['board'] ?? 1);
+    if (!in_array($board, [1, 2], true)) {
+        $board = 1;
+    }
+
+    $stmt = mysqli_prepare($conn, "INSERT INTO posts (title, content, author_id, board) VALUES (?, ?, ?, ?)");
+    mysqli_stmt_bind_param($stmt, "ssii", $title, $content, $author_id, $board);
     mysqli_stmt_execute($stmt);
     $post_id = mysqli_insert_id($conn);
 
@@ -50,8 +56,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 </head>
 <body>
     <h1>게시글 작성</h1>
+    <?php
+    // index.php 글 작성 버튼에서 넘어온 게시판 (전체(0)이면 자유게시판으로)
+    $sel_board = (int)($_GET['board'] ?? 1);
+    if (!in_array($sel_board, [1, 2], true)) {
+        $sel_board = 1;
+    }
+    ?>
     <form action="write.php" method="POST" enctype="multipart/form-data">
         <?= csrf_field() ?>
+        <select name="board">
+            <option value="1" <?= $sel_board === 1 ? 'selected' : '' ?>>자유게시판</option>
+            <option value="2" <?= $sel_board === 2 ? 'selected' : '' ?>>방명록</option>
+        </select><br>
         <input type="text" name="title" placeholder="제목"><br>
         <textarea name="content" placeholder="내용"></textarea><br>
         <input type="file" name="file"><br>

@@ -38,8 +38,41 @@ $comments = mysqli_stmt_get_result($stmt);
     <title><?= htmlspecialchars($post['title']) ?></title>
 </head>
 <body>
-    <h1><?= htmlspecialchars($post['title']) ?></h1>
-    <p>작성자: <?= htmlspecialchars($post['username']) ?> | 날짜: <?= $post['created_at'] ?></p>
+    <!-- 제목 / 작성자·날짜(우측 상단) + 바로 아랫줄 수정·삭제·목록 버튼 -->
+    <table width="100%">
+        <tr valign="top">
+            <td nowrap><h1><?= htmlspecialchars($post['title']) ?></h1></td>
+            <td align="right" width="100%" nowrap>
+                작성자: <?= htmlspecialchars($post['username']) ?> | 날짜: <?= $post['created_at'] ?>
+                <br>
+                <!-- 버튼: 한 줄 유지를 위해 안쪽 테이블, 우측 정렬 -->
+                <table align="right">
+                    <tr>
+                        <?php if ($me == $post['author_id']) { ?>
+                        <td nowrap>
+                            <form action="edit.php" method="GET">
+                                <input type="hidden" name="id" value="<?= $post['id'] ?>">
+                                <button type="submit">수정</button>
+                            </form>
+                        </td>
+                        <td nowrap>
+                            <form action="delete.php" method="POST" onsubmit="return confirm('삭제하시겠습니까?');">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="id" value="<?= $post['id'] ?>">
+                                <button type="submit">삭제</button>
+                            </form>
+                        </td>
+                        <?php } ?>
+                        <td nowrap>
+                            <form action="index.php" method="GET">
+                                <button type="submit">목록</button>
+                            </form>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
     <p><?= nl2br(htmlspecialchars($post['content'])) ?></p>
 
     <!-- 첨부파일 -->
@@ -55,46 +88,54 @@ $comments = mysqli_stmt_get_result($stmt);
     </ul>
     <?php } ?>
 
-    <!-- 수정/삭제 버튼: 작성자 본인에게만 노출 -->
-    <?php if ($me == $post['author_id']) { ?>
-    <a href="edit.php?id=<?= $post['id'] ?>">수정</a>
-    <form action="delete.php" method="POST" style="display:inline" onsubmit="return confirm('삭제하시겠습니까?');">
-        <?= csrf_field() ?>
-        <input type="hidden" name="id" value="<?= $post['id'] ?>">
-        <button type="submit">삭제</button>
-    </form>
-    <?php } ?>
-
-    <a href="index.php">목록</a>
-
     <hr>
 
-    <h2>댓글</h2>
+    <!-- 댓글 제목 + 입력 박스(제목 라인 옆) -->
+    <table width="100%">
+        <tr valign="middle">
+            <td nowrap><h2>댓글</h2></td>
+            <td width="100%">
+                <form action="comment.php" method="POST">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="action" value="write">
+                    <input type="hidden" name="post_id" value="<?= $id ?>">
+                    <table>
+                        <tr valign="top">
+                            <td><textarea name="content" rows="3" cols="80" placeholder="댓글"></textarea></td>
+                            <td><button type="submit">등록</button></td>
+                        </tr>
+                    </table>
+                </form>
+            </td>
+        </tr>
+    </table>
     <?php while ($row = mysqli_fetch_assoc($comments)) { ?>
-    <p>
-        <b><?= htmlspecialchars($row['username']) ?></b> : <?= htmlspecialchars($row['content']) ?>
-
-        <!-- 댓글 수정/삭제: 작성자 본인에게만 노출 -->
-        <?php if ($me == $row['author_id']) { ?>
-        <a href="comment_edit.php?id=<?= $row['id'] ?>&post_id=<?= $id ?>">수정</a>
-        <form action="comment.php" method="POST" style="display:inline" onsubmit="return confirm('삭제하시겠습니까?');">
-            <?= csrf_field() ?>
-            <input type="hidden" name="action" value="delete">
-            <input type="hidden" name="id" value="<?= $row['id'] ?>">
-            <input type="hidden" name="post_id" value="<?= $id ?>">
-            <button type="submit">삭제</button>
-        </form>
-        <?php } ?>
-    </p>
+    <!-- 댓글 한 건: 좌측 내용 / 우측 정렬 수정·삭제 버튼 -->
+    <table width="100%">
+        <tr valign="top">
+            <td width="100%"><b><?= htmlspecialchars($row['username']) ?></b> : <?= htmlspecialchars($row['content']) ?></td>
+            <?php if ($me == $row['author_id']) { ?>
+            <td nowrap>
+                <form action="comment_edit.php" method="GET">
+                    <input type="hidden" name="id" value="<?= $row['id'] ?>">
+                    <input type="hidden" name="post_id" value="<?= $id ?>">
+                    <button type="submit">수정</button>
+                </form>
+            </td>
+            <td nowrap>
+                <form action="comment.php" method="POST" onsubmit="return confirm('삭제하시겠습니까?');">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="id" value="<?= $row['id'] ?>">
+                    <input type="hidden" name="post_id" value="<?= $id ?>">
+                    <button type="submit">삭제</button>
+                </form>
+            </td>
+            <?php } ?>
+        </tr>
+    </table>
+    <hr>
     <?php } ?>
 
-    <!-- 댓글 작성 폼 (작성자는 로그인 사용자) -->
-    <form action="comment.php" method="POST">
-        <?= csrf_field() ?>
-        <input type="hidden" name="action" value="write">
-        <input type="hidden" name="post_id" value="<?= $id ?>">
-        <textarea name="content" placeholder="댓글 내용"></textarea>
-        <button type="submit">댓글 등록</button>
-    </form>
 </body>
 </html>

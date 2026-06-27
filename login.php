@@ -26,14 +26,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <title>로그인</title>
 </head>
 <body>
-    <h1>로그인</h1>
+    <table>
+        <tr>
+            <td><h1>로그인</h1></td>
+            <td>
+                <form action="register.php" method="GET">
+                    <button type="submit">회원가입</button>
+                </form>
+            </td>
+        </tr>
+    </table>
     <?php if (isset($_GET['error'])) echo "로그인 실패"; ?>
     <form action="login.php" method="POST">
         <?= csrf_field() ?>
-        <input type="text" name="username" placeholder="아이디"><br>
-        <input type="password" name="password" placeholder="비밀번호"><br>
-        <button type="submit">로그인</button>
+        <table>
+            <tr>
+                <td>
+                    <input type="text" name="username" placeholder="아이디"><br>
+                    <input type="password" name="password" placeholder="비밀번호">
+                </td>
+                <td>
+                    <button type="submit">로그인</button>
+                </td>
+            </tr>
+        </table>
     </form>
-    <a href="register.php">회원가입</a>
 </body>
 </html>

@@ -42,13 +42,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 </head>
 <body>
     <h1>댓글 수정</h1>
-    <form action="comment_edit.php" method="POST">
+    <form id="editform" action="comment_edit.php" method="POST">
         <?= csrf_field() ?>
         <input type="hidden" name="id" value="<?= $id ?>">
         <input type="hidden" name="post_id" value="<?= $post_id ?>">
-        <textarea name="content"><?= htmlspecialchars($comment['content']) ?></textarea><br>
-        <button type="submit">수정</button>
+        <textarea name="content"><?= htmlspecialchars($comment['content']) ?></textarea>
     </form>
-    <a href="view.php?id=<?= $post_id ?>">취소</a>
+    <!-- 수정 / 취소 버튼 한 줄 배치 (수정은 form 속성으로 위 폼을 제출) -->
+    <table>
+        <tr>
+            <td>
+                <button type="submit" form="editform">수정</button>
+            </td>
+            <td>
+                <form action="view.php" method="GET">
+                    <input type="hidden" name="id" value="<?= $post_id ?>">
+                    <button type="submit">취소</button>
+                </form>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>
